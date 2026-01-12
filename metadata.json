@@ -1,0 +1,8 @@
+{
+  "name": "Wild Guess: Animal Sounds Adventure",
+  "description": "A fun, interactive animal sound guessing game designed for toddlers and young children. Features cute animations, high-quality generated sounds, and simple touch-friendly controls.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
