@@ -22,32 +22,44 @@
             background-color: var(--bg-color);
             margin: 0;
             padding: 0;
-            height: 100vh;
-            height: -webkit-fill-available;
-            overflow: hidden;
-            touch-action: manipulation;
+            min-height: 100vh;
+            /* السماح بالتمرير في حال صغر الشاشة */
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: pan-y;
         }
+        
+        /* منع التمرير على الجسم الرئيسي وتحويله للحاوية في الهواتف */
+        @media (max-height: 700px) {
+            body { align-items: flex-start; }
+        }
+
         .font-kids { font-family: 'Fredoka', 'Cairo', sans-serif; }
         
         /* Animated Background Elements */
         .bubble {
-            position: absolute;
+            position: fixed; /* ثابتة في الخلفية حتى عند السكرول */
             background: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             z-index: -1;
             animation: float 20s infinite linear;
         }
         @keyframes float {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            0% { transform: translateY(110vh) scale(0); opacity: 0; }
             50% { opacity: 0.8; }
             100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
         }
 
         .game-container {
-            height: 100%;
-            max-height: 900px;
+            width: 100%;
+            max-width: 450px;
+            min-height: 90vh;
             display: flex;
             flex-direction: column;
+            margin: 10px auto;
         }
 
         .animal-card {
@@ -83,9 +95,14 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Safe area for iPhones */
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        /* Safe area handling */
+        .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
         .pt-safe { padding-top: env(safe-area-inset-top); }
+
+        /* Custom scrollbar for a clean look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 <script type="importmap">
 {
@@ -97,13 +114,13 @@
 }
 </script>
 </head>
-<body class="flex items-center justify-center">
+<body class="p-2 md:p-4">
     <!-- Background Decorations -->
     <div class="bubble w-20 h-20" style="left: 10%; animation-delay: 0s;"></div>
     <div class="bubble w-32 h-32" style="left: 60%; animation-delay: 5s;"></div>
     <div class="bubble w-16 h-16" style="left: 80%; animation-delay: 2s;"></div>
 
-    <div id="root" class="w-full h-full max-w-lg flex justify-center items-center"></div>
+    <div id="root" class="w-full flex justify-center items-center"></div>
 
     <script type="text/babel" data-type="module">
         import React, { useState, useCallback, useRef, useEffect } from 'https://esm.sh/react@19.0.0';
@@ -171,33 +188,33 @@
           };
 
           return (
-            <div className="game-container w-full max-w-md bg-white/80 backdrop-blur-md rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[12px] border-white overflow-hidden relative">
+            <div className="game-container bg-white/80 backdrop-blur-md rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[8px] md:border-[12px] border-white overflow-hidden relative">
               
-              {/* Header */}
-              <div className="bg-gradient-to-b from-yellow-300 to-yellow-400 p-6 pt-10 text-center relative shadow-lg">
+              {/* Header - Fixed to top of card */}
+              <div className="bg-gradient-to-b from-yellow-300 to-yellow-400 p-4 md:p-6 pt-6 md:pt-10 text-center relative shadow-lg shrink-0">
                 <div className="absolute top-2 left-0 right-0 flex justify-center">
                     <div className="w-16 h-1.5 bg-white/50 rounded-full"></div>
                 </div>
-                <h1 className="text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)]">عالم الأصوات 🐾</h1>
+                <h1 className="text-2xl md:text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)]">عالم الأصوات 🐾</h1>
                 <div className="flex justify-between mt-4 px-2">
-                  <div className="bg-orange-500/90 backdrop-blur-sm text-white px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-orange-700 font-bold text-sm">
+                  <div className="bg-orange-500/90 backdrop-blur-sm text-white px-3 md:px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-orange-700 font-bold text-xs md:text-sm">
                     الجولة {round}/5
                   </div>
-                  <div className="bg-green-500/90 backdrop-blur-sm text-white px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-green-700 font-bold text-sm">
+                  <div className="bg-green-500/90 backdrop-blur-sm text-white px-3 md:px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-green-700 font-bold text-xs md:text-sm">
                     ⭐ {score}
                   </div>
                 </div>
               </div>
 
-              {/* Main Content Area */}
-              <div className="flex-1 p-6 flex flex-col items-center justify-between pb-10">
+              {/* Main Content Area - Flexible height */}
+              <div className="flex-1 p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px]">
                 
                 {status === 'START' && (
-                  <div className="flex-1 flex flex-col items-center justify-center animate-pop">
-                    <div className="text-[10rem] mb-10 drop-shadow-xl select-none">🦁</div>
+                  <div className="flex flex-col items-center justify-center animate-pop py-10">
+                    <div className="text-[7rem] md:text-[10rem] mb-6 md:mb-10 drop-shadow-xl select-none">🦁</div>
                     <button 
                       onClick={() => { setScore(0); setRound(1); startRound(); }} 
-                      className="bg-green-500 hover:bg-green-400 text-white px-14 py-6 rounded-[2.5rem] text-3xl font-black shadow-[0_12px_0_#15803d] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
+                      className="bg-green-500 hover:bg-green-400 text-white px-10 md:px-14 py-4 md:py-6 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl font-black shadow-[0_12px_0_#15803d] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
                     >
                       ابدأ المغامرة!
                     </button>
@@ -205,55 +222,51 @@
                 )}
 
                 {status === 'PLAYING' && (
-                  <>
-                    <div className="flex-1 flex flex-col items-center justify-center w-full">
-                      <button 
-                        onClick={() => playSound(currentAnimal.sound)} 
-                        disabled={isPlaying}
-                        className={`w-44 h-44 rounded-full mb-10 flex flex-col items-center justify-center transition-all relative ${isPlaying ? 'bg-orange-400 scale-105' : 'bg-indigo-500 shadow-[0_15px_0_#4338ca] active:shadow-none active:translate-y-2'}`}
-                      >
-                        {isPlaying ? (
-                          <div className="wave-container">
-                            <div className="wave-bar" style={{animationDelay: '0s'}}></div>
-                            <div className="wave-bar" style={{animationDelay: '0.2s'}}></div>
-                            <div className="wave-bar" style={{animationDelay: '0.4s'}}></div>
-                            <div className="wave-bar" style={{animationDelay: '0.1s'}}></div>
-                          </div>
-                        ) : (
-                          <>
-                            <i className="fas fa-volume-up text-7xl text-white mb-2"></i>
-                            <span className="text-white font-bold text-xs opacity-80">اضغط للاستماع</span>
-                          </>
-                        )}
-                      </button>
+                  <div className="w-full flex flex-col items-center py-4">
+                    <button 
+                      onClick={() => playSound(currentAnimal.sound)} 
+                      disabled={isPlaying}
+                      className={`w-32 h-32 md:w-44 md:h-44 rounded-full mb-8 md:mb-10 flex flex-col items-center justify-center transition-all relative ${isPlaying ? 'bg-orange-400 scale-105' : 'bg-indigo-500 shadow-[0_15px_0_#4338ca] active:shadow-none active:translate-y-2'}`}
+                    >
+                      {isPlaying ? (
+                        <div className="wave-container">
+                          {[0, 0.2, 0.4, 0.1].map((delay, i) => (
+                            <div key={i} className="wave-bar" style={{animationDelay: `${delay}s`}}></div>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <i className="fas fa-volume-up text-5xl md:text-7xl text-white mb-2"></i>
+                          <span className="text-white font-bold text-[10px] opacity-80">اضغط هنا</span>
+                        </>
+                      )}
+                    </button>
 
-                      <div className="grid grid-cols-2 gap-5 w-full">
-                        {options.map(a => (
-                          <button 
-                            key={a.id} 
-                            onClick={() => handleChoice(a)} 
-                            className={`animal-card ${a.color} ${a.border} p-6 rounded-[2.5rem] border-4 flex flex-col items-center justify-center aspect-square`}
-                          >
-                            <span className="text-6xl mb-3">{a.emoji}</span>
-                            <span className="font-black text-gray-800 text-xl">{a.name}</span>
-                          </button>
-                        ))}
-                      </div>
+                    <div className="grid grid-cols-2 gap-3 md:gap-5 w-full max-w-sm">
+                      {options.map(a => (
+                        <button 
+                          key={a.id} 
+                          onClick={() => handleChoice(a)} 
+                          className={`animal-card ${a.color} ${a.border} p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border-4 flex flex-col items-center justify-center aspect-square`}
+                        >
+                          <span className="text-4xl md:text-6xl mb-2 md:mb-3">{a.emoji}</span>
+                          <span className="font-black text-gray-800 text-lg md:text-xl">{a.name}</span>
+                        </button>
+                      ))}
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {status === 'GAME_OVER' && (
-                  <div className="flex-1 flex flex-col items-center justify-center animate-pop text-center">
-                    <div className="relative mb-8">
-                        <span className="text-[12rem]">🏆</span>
-                        <div className="absolute top-0 left-0 right-0 text-5xl animate-bounce">✨</div>
+                  <div className="flex flex-col items-center justify-center animate-pop text-center py-10">
+                    <div className="relative mb-6">
+                        <span className="text-[8rem] md:text-[12rem]">🏆</span>
                     </div>
-                    <h2 className="text-4xl font-black text-gray-800 mb-2">مذهل يا بطل!</h2>
-                    <p className="text-2xl text-indigo-600 font-bold mb-10">حققت {score} من أصل 5</p>
+                    <h2 className="text-3xl md:text-4xl font-black text-gray-800 mb-2">مذهل يا بطل!</h2>
+                    <p className="text-xl md:text-2xl text-indigo-600 font-bold mb-8">حققت {score} من أصل 5</p>
                     <button 
                       onClick={() => setStatus('START')} 
-                      className="bg-orange-500 hover:bg-orange-400 text-white px-12 py-5 rounded-[2rem] text-2xl font-black shadow-[0_10px_0_#c2410c] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
+                      className="bg-orange-500 hover:bg-orange-400 text-white px-10 md:px-12 py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] text-xl md:text-2xl font-black shadow-[0_10px_0_#c2410c] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
                     >
                       لعب مرة أخرى 🔄
                     </button>
@@ -265,17 +278,17 @@
               {feedback && (
                 <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex items-center justify-center z-50 animate-pop">
                   <div className="text-center p-8">
-                    <div className="text-[12rem] mb-6 animate-bounce">
+                    <div className="text-[8rem] md:text-[12rem] mb-6 animate-bounce">
                         {feedback.isCorrect ? '💎' : '💫'}
                     </div>
-                    <h2 className={`text-4xl font-black leading-tight ${feedback.isCorrect ? 'text-green-500' : 'text-orange-500'}`}>
+                    <h2 className={`text-3xl md:text-4xl font-black leading-tight ${feedback.isCorrect ? 'text-green-500' : 'text-orange-500'}`}>
                       {feedback.msg}
                     </h2>
                   </div>
                 </div>
               )}
               
-              <div className="bg-gray-100/50 py-3 text-center text-gray-400 text-xs font-bold uppercase tracking-widest pb-safe">
+              <div className="bg-gray-100/50 py-3 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest pb-safe shrink-0">
                 صنع بكل ❤️ للأطفال المبدعين
               </div>
             </div>
