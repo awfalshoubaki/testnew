@@ -11,6 +11,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
         :root {
@@ -23,7 +24,6 @@
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            /* السماح بالتمرير في حال صغر الشاشة */
             overflow-y: auto;
             overflow-x: hidden;
             display: flex;
@@ -32,16 +32,14 @@
             touch-action: pan-y;
         }
         
-        /* منع التمرير على الجسم الرئيسي وتحويله للحاوية في الهواتف */
         @media (max-height: 700px) {
             body { align-items: flex-start; }
         }
 
         .font-kids { font-family: 'Fredoka', 'Cairo', sans-serif; }
         
-        /* Animated Background Elements */
         .bubble {
-            position: fixed; /* ثابتة في الخلفية حتى عند السكرول */
+            position: fixed;
             background: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             z-index: -1;
@@ -65,6 +63,7 @@
         .animal-card {
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+            user-select: none;
         }
         .animal-card:active {
             transform: translateY(4px);
@@ -89,19 +88,25 @@
             50% { height: 40px; }
         }
 
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
         .animate-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes pop {
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Safe area handling */
         .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 1rem); }
-        .pt-safe { padding-top: env(safe-area-inset-top); }
-
-        /* Custom scrollbar for a clean look */
+        
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 <script type="importmap">
@@ -115,7 +120,6 @@
 </script>
 </head>
 <body class="p-2 md:p-4">
-    <!-- Background Decorations -->
     <div class="bubble w-20 h-20" style="left: 10%; animation-delay: 0s;"></div>
     <div class="bubble w-32 h-32" style="left: 60%; animation-delay: 5s;"></div>
     <div class="bubble w-16 h-16" style="left: 80%; animation-delay: 2s;"></div>
@@ -134,7 +138,8 @@
           { id: 'monkey', name: 'قرد', emoji: '🐒', color: 'bg-amber-600', border: 'border-amber-800', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Monkey+Screech&filename=24/243633-72861962-430c-403d-8255-70335805470d.mp3' },
           { id: 'cat', name: 'قطة', emoji: '🐱', color: 'bg-rose-300', border: 'border-rose-500', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Cat+Meow&filename=24/243633-91823774-8898-4226-9430-819232323838.mp3' },
           { id: 'dog', name: 'كلب', emoji: '🐶', color: 'bg-stone-300', border: 'border-stone-500', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Dog+Bark&filename=24/243633-41824748-8182-4118-8418-418418418418.mp3' },
-          { id: 'rooster', name: 'ديك', emoji: '🐓', color: 'bg-red-400', border: 'border-red-600', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Rooster+Crow&filename=24/243633-31189405-1815-4638-9943-85764724773c.mp3' }
+          { id: 'rooster', name: 'ديك', emoji: '🐓', color: 'bg-red-400', border: 'border-red-600', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Rooster+Crow&filename=24/243633-31189405-1815-4638-9943-85764724773c.mp3' },
+          { id: 'sheep', name: 'خروف', emoji: '🐑', color: 'bg-white', border: 'border-gray-300', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Sheep+Baa&filename=24/243633-71824718-4182-4182-8182-418241824182.mp3' }
         ];
 
         const App = () => {
@@ -145,15 +150,27 @@
           const [options, setOptions] = useState([]);
           const [isPlaying, setIsPlaying] = useState(false);
           const [feedback, setFeedback] = useState(null);
+          const [wrongChoice, setWrongChoice] = useState(null);
+          
           const audioRef = useRef(new Audio());
+          const sfxRef = useRef({
+            correct: new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'),
+            wrong: new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3')
+          });
+
+          const triggerConfetti = () => {
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ['#FFD700', '#FF6347', '#00FF7F', '#1E90FF']
+            });
+          };
 
           const playSound = (url) => {
             audioRef.current.src = url;
             setIsPlaying(true);
-            audioRef.current.play().catch(e => {
-                console.log("Audio failed", e);
-                setIsPlaying(false);
-            });
+            audioRef.current.play().catch(() => setIsPlaying(false));
             audioRef.current.onended = () => setIsPlaying(false);
           };
 
@@ -164,15 +181,19 @@
             setCurrentAnimal(correct);
             setOptions(choices);
             setFeedback(null);
+            setWrongChoice(null);
             setStatus('PLAYING');
             setTimeout(() => playSound(correct.sound), 800);
           }, []);
 
           const handleChoice = (animal) => {
             if (feedback || isPlaying) return;
+            
             if (animal.id === currentAnimal.id) {
+              sfxRef.current.correct.play();
+              triggerConfetti();
               setScore(s => s + 1);
-              setFeedback({ isCorrect: true, msg: "أنت بطل! إجابة صحيحة 🌟" });
+              setFeedback({ isCorrect: true, msg: "رائع! إجابة ذكية 🌟" });
               setTimeout(() => {
                 if (round < 5) { 
                   setRound(r => r + 1); 
@@ -182,41 +203,47 @@
                 }
               }, 1800);
             } else {
-              setFeedback({ isCorrect: false, msg: "حاول مرة أخرى يا ذكي 💡" });
-              setTimeout(() => setFeedback(null), 1200);
+              sfxRef.current.wrong.play();
+              setWrongChoice(animal.id);
+              setFeedback({ isCorrect: false, msg: "أنت قريب! حاول مجدداً 💡" });
+              setTimeout(() => {
+                setFeedback(null);
+                setWrongChoice(null);
+              }, 1200);
             }
           };
 
           return (
             <div className="game-container bg-white/80 backdrop-blur-md rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[8px] md:border-[12px] border-white overflow-hidden relative">
               
-              {/* Header - Fixed to top of card */}
               <div className="bg-gradient-to-b from-yellow-300 to-yellow-400 p-4 md:p-6 pt-6 md:pt-10 text-center relative shadow-lg shrink-0">
                 <div className="absolute top-2 left-0 right-0 flex justify-center">
                     <div className="w-16 h-1.5 bg-white/50 rounded-full"></div>
                 </div>
-                <h1 className="text-2xl md:text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)]">عالم الأصوات 🐾</h1>
+                <h1 className="text-2xl md:text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)]">مغامرة الأصوات 🐾</h1>
                 <div className="flex justify-between mt-4 px-2">
                   <div className="bg-orange-500/90 backdrop-blur-sm text-white px-3 md:px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-orange-700 font-bold text-xs md:text-sm">
-                    الجولة {round}/5
+                    المرحلة {round}/5
                   </div>
                   <div className="bg-green-500/90 backdrop-blur-sm text-white px-3 md:px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-green-700 font-bold text-xs md:text-sm">
-                    ⭐ {score}
+                    نجومك: ⭐ {score}
                   </div>
                 </div>
               </div>
 
-              {/* Main Content Area - Flexible height */}
-              <div className="flex-1 p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px]">
+              <div className="flex-1 p-4 md:p-6 flex flex-col items-center justify-center min-h-[450px]">
                 
                 {status === 'START' && (
                   <div className="flex flex-col items-center justify-center animate-pop py-10">
-                    <div className="text-[7rem] md:text-[10rem] mb-6 md:mb-10 drop-shadow-xl select-none">🦁</div>
+                    <div className="relative">
+                        <div className="text-[7rem] md:text-[10rem] mb-6 md:mb-10 drop-shadow-xl select-none scale-110">🦁</div>
+                        <div className="absolute -top-4 -right-4 text-4xl animate-bounce">💬</div>
+                    </div>
                     <button 
                       onClick={() => { setScore(0); setRound(1); startRound(); }} 
                       className="bg-green-500 hover:bg-green-400 text-white px-10 md:px-14 py-4 md:py-6 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl font-black shadow-[0_12px_0_#15803d] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
                     >
-                      ابدأ المغامرة!
+                      هيا نبدأ!
                     </button>
                   </div>
                 )}
@@ -226,30 +253,30 @@
                     <button 
                       onClick={() => playSound(currentAnimal.sound)} 
                       disabled={isPlaying}
-                      className={`w-32 h-32 md:w-44 md:h-44 rounded-full mb-8 md:mb-10 flex flex-col items-center justify-center transition-all relative ${isPlaying ? 'bg-orange-400 scale-105' : 'bg-indigo-500 shadow-[0_15px_0_#4338ca] active:shadow-none active:translate-y-2'}`}
+                      className={`w-32 h-32 md:w-44 md:h-44 rounded-full mb-8 md:mb-10 flex flex-col items-center justify-center transition-all relative ${isPlaying ? 'bg-orange-400 scale-105 ring-8 ring-orange-200' : 'bg-indigo-500 shadow-[0_15px_0_#4338ca] active:shadow-none active:translate-y-2'}`}
                     >
                       {isPlaying ? (
                         <div className="wave-container">
-                          {[0, 0.2, 0.4, 0.1].map((delay, i) => (
+                          {[0, 0.2, 0.4, 0.1, 0.3].map((delay, i) => (
                             <div key={i} className="wave-bar" style={{animationDelay: `${delay}s`}}></div>
                           ))}
                         </div>
                       ) : (
                         <>
-                          <i className="fas fa-volume-up text-5xl md:text-7xl text-white mb-2"></i>
-                          <span className="text-white font-bold text-[10px] opacity-80">اضغط هنا</span>
+                          <i className="fas fa-play text-5xl md:text-7xl text-white mb-2 ml-2"></i>
+                          <span className="text-white font-bold text-[10px] uppercase tracking-wider">استمع</span>
                         </>
                       )}
                     </button>
 
-                    <div className="grid grid-cols-2 gap-3 md:gap-5 w-full max-w-sm">
+                    <div className="grid grid-cols-2 gap-4 md:gap-6 w-full max-w-sm">
                       {options.map(a => (
                         <button 
                           key={a.id} 
                           onClick={() => handleChoice(a)} 
-                          className={`animal-card ${a.color} ${a.border} p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border-4 flex flex-col items-center justify-center aspect-square`}
+                          className={`animal-card ${a.color} ${a.border} ${wrongChoice === a.id ? 'shake opacity-50' : ''} p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border-4 flex flex-col items-center justify-center aspect-square transition-all`}
                         >
-                          <span className="text-4xl md:text-6xl mb-2 md:mb-3">{a.emoji}</span>
+                          <span className="text-5xl md:text-7xl mb-2 md:mb-3">{a.emoji}</span>
                           <span className="font-black text-gray-800 text-lg md:text-xl">{a.name}</span>
                         </button>
                       ))}
@@ -260,26 +287,26 @@
                 {status === 'GAME_OVER' && (
                   <div className="flex flex-col items-center justify-center animate-pop text-center py-10">
                     <div className="relative mb-6">
-                        <span className="text-[8rem] md:text-[12rem]">🏆</span>
+                        <span className="text-[8rem] md:text-[12rem]">🥳</span>
+                        <div className="absolute top-0 left-0 right-0 text-5xl animate-bounce">✨</div>
                     </div>
-                    <h2 className="text-3xl md:text-4xl font-black text-gray-800 mb-2">مذهل يا بطل!</h2>
-                    <p className="text-xl md:text-2xl text-indigo-600 font-bold mb-8">حققت {score} من أصل 5</p>
+                    <h2 className="text-4xl font-black text-gray-800 mb-2">أنت عبقري!</h2>
+                    <p className="text-xl md:text-2xl text-indigo-600 font-bold mb-8">جمعت {score} نجوم ذهبية!</p>
                     <button 
                       onClick={() => setStatus('START')} 
                       className="bg-orange-500 hover:bg-orange-400 text-white px-10 md:px-12 py-4 md:py-5 rounded-[1.5rem] md:rounded-[2rem] text-xl md:text-2xl font-black shadow-[0_10px_0_#c2410c] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
                     >
-                      لعب مرة أخرى 🔄
+                      العب مرة ثانية 🔄
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Feedback Overlay */}
               {feedback && (
-                <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex items-center justify-center z-50 animate-pop">
+                <div className={`absolute inset-0 bg-white/90 backdrop-blur-md flex items-center justify-center z-50 animate-pop`}>
                   <div className="text-center p-8">
-                    <div className="text-[8rem] md:text-[12rem] mb-6 animate-bounce">
-                        {feedback.isCorrect ? '💎' : '💫'}
+                    <div className={`text-[8rem] md:text-[12rem] mb-6 ${feedback.isCorrect ? 'animate-bounce' : 'shake'}`}>
+                        {feedback.isCorrect ? '✅' : '❓'}
                     </div>
                     <h2 className={`text-3xl md:text-4xl font-black leading-tight ${feedback.isCorrect ? 'text-green-500' : 'text-orange-500'}`}>
                       {feedback.msg}
@@ -289,7 +316,7 @@
               )}
               
               <div className="bg-gray-100/50 py-3 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest pb-safe shrink-0">
-                صنع بكل ❤️ للأطفال المبدعين
+                لعبة تعليمية آمنة 100% للأطفال
               </div>
             </div>
           );
