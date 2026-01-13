@@ -1,25 +1,91 @@
- 
+
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>خمن صوت الحيوان - مغامرة الصغار</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700;900&family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Quicksand', sans-serif; background: #eef2ff; overflow: hidden; touch-action: manipulation; }
-        .font-kids { font-family: 'Fredoka One', cursive; }
-        .bounce { animation: bounce 0.8s infinite alternate; }
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        * { user-select: none; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg-color: #f0f9ff;
+            --primary-color: #4cc9f0;
+        }
+        body { 
+            font-family: 'Cairo', 'Fredoka', sans-serif; 
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            height: -webkit-fill-available;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .font-kids { font-family: 'Fredoka', 'Cairo', sans-serif; }
+        
+        /* Animated Background Elements */
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            z-index: -1;
+            animation: float 20s infinite linear;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        .game-container {
+            height: 100%;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .animal-card {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+        }
+        .animal-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+
+        .wave-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 40px;
+        }
+        .wave-bar {
+            width: 6px;
+            background: white;
+            border-radius: 10px;
+            animation: wave 1s infinite ease-in-out;
+        }
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 40px; }
+        }
+
+        .animate-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Safe area for iPhones */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
     </style>
 <script type="importmap">
 {
@@ -31,21 +97,27 @@
 }
 </script>
 </head>
-<body class="min-h-screen flex items-center justify-center p-2">
-    <div id="root" class="w-full flex justify-center"></div>
+<body class="flex items-center justify-center">
+    <!-- Background Decorations -->
+    <div class="bubble w-20 h-20" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="bubble w-32 h-32" style="left: 60%; animation-delay: 5s;"></div>
+    <div class="bubble w-16 h-16" style="left: 80%; animation-delay: 2s;"></div>
+
+    <div id="root" class="w-full h-full max-w-lg flex justify-center items-center"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useCallback, useRef } from 'https://esm.sh/react@19.0.0';
+        import React, { useState, useCallback, useRef, useEffect } from 'https://esm.sh/react@19.0.0';
         import ReactDOM from 'https://esm.sh/react-dom@19.0.0/client';
 
         const ANIMALS = [
-          { id: 'lion', name: 'أسد', emoji: '🦁', color: 'bg-orange-400', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Lion+Roar&filename=24/243633-89914073-6789-497d-9481-b5f79549303a.mp3' },
-          { id: 'elephant', name: 'فيل', emoji: '🐘', color: 'bg-gray-400', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Elephant+Trumpet&filename=mt/MTI5MzE5NzgxMjkzMjk0_vL8_2bc9mF0yY.mp3' },
-          { id: 'cow', name: 'بقرة', emoji: '🐮', color: 'bg-yellow-100', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Cow+Moo&filename=24/243633-56834924-1188-4f80-873b-586718d74868.mp3' },
-          { id: 'duck', name: 'بطة', emoji: '🦆', color: 'bg-yellow-400', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Duck+Quack&filename=24/243633-8742845c-2045-4b07-8822-25e1976077a2.mp3' },
-          { id: 'monkey', name: 'قرد', emoji: '🐒', color: 'bg-amber-700', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Monkey+Screech&filename=24/243633-72861962-430c-403d-8255-70335805470d.mp3' },
-          { id: 'cat', name: 'قطة', emoji: '🐱', color: 'bg-orange-200', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Cat+Meow&filename=24/243633-91823774-8898-4226-9430-819232323838.mp3' },
-          { id: 'dog', name: 'كلب', emoji: '🐶', color: 'bg-orange-100', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Dog+Bark&filename=24/243633-41824748-8182-4118-8418-418418418418.mp3' }
+          { id: 'lion', name: 'أسد', emoji: '🦁', color: 'bg-orange-400', border: 'border-orange-600', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Lion+Roar&filename=24/243633-89914073-6789-497d-9481-b5f79549303a.mp3' },
+          { id: 'elephant', name: 'فيل', emoji: '🐘', color: 'bg-sky-400', border: 'border-sky-600', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Elephant+Trumpet&filename=mt/MTI5MzE5NzgxMjkzMjk0_vL8_2bc9mF0yY.mp3' },
+          { id: 'cow', name: 'بقرة', emoji: '🐮', color: 'bg-yellow-200', border: 'border-yellow-400', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Cow+Moo&filename=24/243633-56834924-1188-4f80-873b-586718d74868.mp3' },
+          { id: 'duck', name: 'بطة', emoji: '🦆', color: 'bg-yellow-400', border: 'border-yellow-600', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Duck+Quack&filename=24/243633-8742845c-2045-4b07-8822-25e1976077a2.mp3' },
+          { id: 'monkey', name: 'قرد', emoji: '🐒', color: 'bg-amber-600', border: 'border-amber-800', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Monkey+Screech&filename=24/243633-72861962-430c-403d-8255-70335805470d.mp3' },
+          { id: 'cat', name: 'قطة', emoji: '🐱', color: 'bg-rose-300', border: 'border-rose-500', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Cat+Meow&filename=24/243633-91823774-8898-4226-9430-819232323838.mp3' },
+          { id: 'dog', name: 'كلب', emoji: '🐶', color: 'bg-stone-300', border: 'border-stone-500', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Dog+Bark&filename=24/243633-41824748-8182-4118-8418-418418418418.mp3' },
+          { id: 'rooster', name: 'ديك', emoji: '🐓', color: 'bg-red-400', border: 'border-red-600', sound: 'https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Rooster+Crow&filename=24/243633-31189405-1815-4638-9943-85764724773c.mp3' }
         ];
 
         const App = () => {
@@ -61,7 +133,10 @@
           const playSound = (url) => {
             audioRef.current.src = url;
             setIsPlaying(true);
-            audioRef.current.play().catch(() => setIsPlaying(false));
+            audioRef.current.play().catch(e => {
+                console.log("Audio failed", e);
+                setIsPlaying(false);
+            });
             audioRef.current.onended = () => setIsPlaying(false);
           };
 
@@ -73,14 +148,14 @@
             setOptions(choices);
             setFeedback(null);
             setStatus('PLAYING');
-            setTimeout(() => playSound(correct.sound), 600);
+            setTimeout(() => playSound(correct.sound), 800);
           }, []);
 
           const handleChoice = (animal) => {
             if (feedback || isPlaying) return;
             if (animal.id === currentAnimal.id) {
               setScore(s => s + 1);
-              setFeedback({ isCorrect: true, msg: "أحسنت! إجابة صحيحة 🌟" });
+              setFeedback({ isCorrect: true, msg: "أنت بطل! إجابة صحيحة 🌟" });
               setTimeout(() => {
                 if (round < 5) { 
                   setRound(r => r + 1); 
@@ -88,82 +163,120 @@
                 } else { 
                   setStatus('GAME_OVER'); 
                 }
-              }, 1600);
+              }, 1800);
             } else {
-              setFeedback({ isCorrect: false, msg: "حاول مرة أخرى يا بطل 🍎" });
+              setFeedback({ isCorrect: false, msg: "حاول مرة أخرى يا ذكي 💡" });
               setTimeout(() => setFeedback(null), 1200);
             }
           };
 
           return (
-            <div className="max-w-md w-full min-h-[90vh] bg-white rounded-3xl shadow-2xl border-8 border-yellow-300 flex flex-col overflow-hidden relative">
-              <div className="bg-yellow-400 p-5 text-center shadow-md z-10">
-                <h1 className="text-2xl font-kids text-white drop-shadow-sm">خمن صوت الحيوان</h1>
-                <div className="flex justify-between mt-3 text-white font-bold text-sm" dir="rtl">
-                  <span className="bg-orange-500 px-4 py-1 rounded-full">جولة {round}/5</span>
-                  <span className="bg-green-500 px-4 py-1 rounded-full">النجوم: {score}</span>
+            <div className="game-container w-full max-w-md bg-white/80 backdrop-blur-md rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[12px] border-white overflow-hidden relative">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-b from-yellow-300 to-yellow-400 p-6 pt-10 text-center relative shadow-lg">
+                <div className="absolute top-2 left-0 right-0 flex justify-center">
+                    <div className="w-16 h-1.5 bg-white/50 rounded-full"></div>
+                </div>
+                <h1 className="text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.2)]">عالم الأصوات 🐾</h1>
+                <div className="flex justify-between mt-4 px-2">
+                  <div className="bg-orange-500/90 backdrop-blur-sm text-white px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-orange-700 font-bold text-sm">
+                    الجولة {round}/5
+                  </div>
+                  <div className="bg-green-500/90 backdrop-blur-sm text-white px-4 py-1.5 rounded-2xl shadow-md border-b-4 border-green-700 font-bold text-sm">
+                    ⭐ {score}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex-1 p-6 flex flex-col items-center justify-center">
+              {/* Main Content Area */}
+              <div className="flex-1 p-6 flex flex-col items-center justify-between pb-10">
+                
                 {status === 'START' && (
-                  <div className="text-center animate-fade-in">
-                    <div className="text-8xl mb-6 bounce">🦁🐶🐘</div>
+                  <div className="flex-1 flex flex-col items-center justify-center animate-pop">
+                    <div className="text-[10rem] mb-10 drop-shadow-xl select-none">🦁</div>
                     <button 
                       onClick={() => { setScore(0); setRound(1); startRound(); }} 
-                      className="bg-green-500 text-white p-8 rounded-full text-2xl font-kids shadow-xl border-b-8 border-green-700 active:scale-95 transition-transform"
+                      className="bg-green-500 hover:bg-green-400 text-white px-14 py-6 rounded-[2.5rem] text-3xl font-black shadow-[0_12px_0_#15803d] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
                     >
-                      ابدأ اللعب!
+                      ابدأ المغامرة!
                     </button>
                   </div>
                 )}
 
                 {status === 'PLAYING' && (
-                  <div className="w-full flex flex-col items-center animate-fade-in">
-                    <button 
-                      onClick={() => playSound(currentAnimal.sound)} 
-                      disabled={isPlaying}
-                      className={`w-36 h-36 rounded-full mb-10 flex items-center justify-center transition-all ${isPlaying ? 'bg-orange-300 scale-110' : 'bg-blue-500 shadow-xl border-b-8 border-blue-700'}`}
-                    >
-                      <i className={`fas ${isPlaying ? 'fa-spinner fa-spin' : 'fa-volume-up'} text-6xl text-white`}></i>
-                    </button>
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      {options.map(a => (
-                        <button 
-                          key={a.id} 
-                          onClick={() => handleChoice(a)} 
-                          className={`${a.color} p-6 rounded-3xl border-4 border-white shadow-lg active:scale-90 transition-transform flex flex-col items-center`}
-                        >
-                          <span className="text-6xl mb-2">{a.emoji}</span>
-                          <span className="font-bold text-gray-800 text-xl">{a.name}</span>
-                        </button>
-                      ))}
+                  <>
+                    <div className="flex-1 flex flex-col items-center justify-center w-full">
+                      <button 
+                        onClick={() => playSound(currentAnimal.sound)} 
+                        disabled={isPlaying}
+                        className={`w-44 h-44 rounded-full mb-10 flex flex-col items-center justify-center transition-all relative ${isPlaying ? 'bg-orange-400 scale-105' : 'bg-indigo-500 shadow-[0_15px_0_#4338ca] active:shadow-none active:translate-y-2'}`}
+                      >
+                        {isPlaying ? (
+                          <div className="wave-container">
+                            <div className="wave-bar" style={{animationDelay: '0s'}}></div>
+                            <div className="wave-bar" style={{animationDelay: '0.2s'}}></div>
+                            <div className="wave-bar" style={{animationDelay: '0.4s'}}></div>
+                            <div className="wave-bar" style={{animationDelay: '0.1s'}}></div>
+                          </div>
+                        ) : (
+                          <>
+                            <i className="fas fa-volume-up text-7xl text-white mb-2"></i>
+                            <span className="text-white font-bold text-xs opacity-80">اضغط للاستماع</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="grid grid-cols-2 gap-5 w-full">
+                        {options.map(a => (
+                          <button 
+                            key={a.id} 
+                            onClick={() => handleChoice(a)} 
+                            className={`animal-card ${a.color} ${a.border} p-6 rounded-[2.5rem] border-4 flex flex-col items-center justify-center aspect-square`}
+                          >
+                            <span className="text-6xl mb-3">{a.emoji}</span>
+                            <span className="font-black text-gray-800 text-xl">{a.name}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 {status === 'GAME_OVER' && (
-                  <div className="text-center animate-fade-in">
-                    <div className="text-9xl mb-6">🎈</div>
-                    <h2 className="text-3xl font-kids text-gray-800">رائع جداً!</h2>
-                    <p className="text-xl text-gray-600 mb-8 mt-2">لقد جمعت {score} نجوم!</p>
+                  <div className="flex-1 flex flex-col items-center justify-center animate-pop text-center">
+                    <div className="relative mb-8">
+                        <span className="text-[12rem]">🏆</span>
+                        <div className="absolute top-0 left-0 right-0 text-5xl animate-bounce">✨</div>
+                    </div>
+                    <h2 className="text-4xl font-black text-gray-800 mb-2">مذهل يا بطل!</h2>
+                    <p className="text-2xl text-indigo-600 font-bold mb-10">حققت {score} من أصل 5</p>
                     <button 
                       onClick={() => setStatus('START')} 
-                      className="bg-orange-500 text-white px-10 py-4 rounded-full font-kids text-xl shadow-lg border-b-8 border-orange-700 active:scale-95"
+                      className="bg-orange-500 hover:bg-orange-400 text-white px-12 py-5 rounded-[2rem] text-2xl font-black shadow-[0_10px_0_#c2410c] active:shadow-none active:translate-y-2 transition-all border-4 border-white"
                     >
-                      العب مرة أخرى
+                      لعب مرة أخرى 🔄
                     </button>
                   </div>
                 )}
+              </div>
 
-                {feedback && (
-                  <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-20 animate-fade-in">
-                    <div className="text-center">
-                      <div className="text-9xl mb-4">{feedback.isCorrect ? '✨' : '🍎'}</div>
-                      <h2 className={`text-4xl font-kids px-10 ${feedback.isCorrect ? 'text-green-500' : 'text-orange-500'}`}>{feedback.msg}</h2>
+              {/* Feedback Overlay */}
+              {feedback && (
+                <div className="absolute inset-0 bg-white/90 backdrop-blur-md flex items-center justify-center z-50 animate-pop">
+                  <div className="text-center p-8">
+                    <div className="text-[12rem] mb-6 animate-bounce">
+                        {feedback.isCorrect ? '💎' : '💫'}
                     </div>
+                    <h2 className={`text-4xl font-black leading-tight ${feedback.isCorrect ? 'text-green-500' : 'text-orange-500'}`}>
+                      {feedback.msg}
+                    </h2>
                   </div>
-                )}
+                </div>
+              )}
+              
+              <div className="bg-gray-100/50 py-3 text-center text-gray-400 text-xs font-bold uppercase tracking-widest pb-safe">
+                صنع بكل ❤️ للأطفال المبدعين
               </div>
             </div>
           );
