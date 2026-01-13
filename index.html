@@ -13,7 +13,7 @@
             font-family: 'Quicksand', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #eef2ff;
             overflow: hidden;
-            touch-action: manipulation; /* لمنع الزووم عند الضغط المتكرر */
+            touch-action: manipulation;
         }
         .font-kids {
             font-family: 'Fredoka One', cursive;
@@ -32,7 +32,6 @@
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
-        /* منع اختيار النص */
         * {
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -51,6 +50,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-2">
     <div id="root" class="w-full flex justify-center"></div>
-    <script type="module" src="index.tsx"></script>
+    <!-- التأكد من أن المسار يبدأ بنقطة لضمان عمله في GitHub Pages -->
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>
